@@ -2,7 +2,7 @@
   "name": "react-homework-template",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://YuliyaBondG.github.io/goit-react-hw-03-image-finder/",
+  "homepage": "https://YuliyaBondG.github.io/goit-react-hw-04-images/",
   "dependencies": {
     "@icongo/im": "^1.2.0",
     "@iconify/icons-bi": "^1.2.16",
