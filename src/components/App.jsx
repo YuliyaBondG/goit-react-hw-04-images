@@ -1,5 +1,5 @@
-import { Component } from 'react';
-import { Toaster } from 'react-hot-toast';
+import { useState, useEffect } from 'react';
+import { ToastContainer } from 'react-toastify';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { getSearch } from 'services/api';
 import { Searchbar } from './Searchbar/Searchbar';
@@ -7,110 +7,96 @@ import { Button } from 'components/Button/Button';
 import { Loader } from 'components/Loader/Loader';
 import { Modal } from 'components/Modal/Modal';
 
-export class App extends Component {
-  state = {
-    search: '',
-    images: [],
-    page: 1,
-    total: 0,
-    loading: false,
-    error: null,
-    showModal: false,
-    empty: false,
-    largeImageURL: '',
-    alt: '',
-  };
+export const App = () => {
+  const [search, setSearch] = useState('');
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [empty, setEmpty] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  const [alt, setAlt] = useState('');
 
-  componentDidUpdate(_, prevState) {
-    const { search, page } = this.state;
-    if (prevState.search !== search || prevState.page !== page) {
-      this.getFunc(search, this.page);
-    }
-  }
+  useEffect(() => {
+    if (search === '') return;
 
-  getFunc = (text, page) => {
-    this.setState({ loading: true, error: null });
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
 
-    getSearch(text, page)
-      .then(data => {
+      try {
+        const data = await getSearch(search, page);
+
         if (data.hits.length === 0) {
-          this.setState({ empty: true });
+          setEmpty(true);
         }
-        this.setState(prevSt => ({
-          images: [...prevSt.images, ...data.hits],
-          total: data.totalHits,
-        }));
-      })
-      .catch(error => {
-        this.setState({ error: error.message });
-      })
-      .finally(() => {
-        this.setState({ loading: false });
-      });
+
+        setImages(prevImages => [...prevImages, ...data.hits]);
+        setTotal(data.totalHits);
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [search, page]);
+
+  const handleSubmit = newSearch => {
+    setSearch(newSearch);
+    setImages([]);
+    setPage(1);
+    setTotal(0);
+    setLoading(false);
+    setEmpty(false);
   };
 
-  clickLoad = () => {
-    this.setState(prevSt => ({
-      page: prevSt.page + 1,
-    }));
+  const clickLoad = () => {
+    setPage(prevPage => prevPage + 1);
   };
 
-  openModal = (largeImageURL, alt) => {
-    this.setState(({ showModal }) => {
-      return { showModal: !showModal, largeImageURL, alt };
-    });
+  const openModal = (largeImageUrl, alt) => {
+    setShowModal(true);
+    setLargeImageURL(largeImageUrl);
+    setAlt(alt);
   };
 
-  handleSubmit = search => {
-    this.setState({
-      search,
-      images: [],
-      page: 1,
-      total: 0,
-      loading: false,
-
-      empty: false,
-    });
+  const closeModal = () => {
+    setShowModal(false);
+    setLargeImageURL('');
+    setAlt('');
   };
 
-  closeModal = () => {
-    this.setState(({ showModal }) => {
-      return { showModal: !showModal, largeImageURL: '', alt: '' };
-    });
-  };
+  return (
+    <div>
+      <ToastContainer
+        toastOptions={{
+          duration: 1500,
+        }}
+      />
 
-  render() {
-    const { error, loading, images, total } = this.state;
-    return (
-      <div>
-        <Toaster
-          toastOptions={{
-            duration: 1500,
-          }}
-        />
-
-        <Searchbar handleSubmit={this.handleSubmit} />
-        {error && (
-          <h2 style={{ textAlign: 'center' }}>
-            Something went wrong: ({error})!
-          </h2>
-        )}
-        <ImageGallery togleModal={this.openModal} images={images} />
-        {loading && <Loader />}
-        {this.state.empty && (
-          <h2 style={{ textAlign: 'center' }}>
-            Sorry. There are no images ... 😭
-          </h2>
-        )}
-        {!loading && images.length !== total && (
-          <Button clickLoad={this.clickLoad} />
-        )}
-        {this.state.showModal && (
-          <Modal closeModal={this.closeModal}>
-            <img src={this.state.largeImageURL} alt={this.state.alt} />
-          </Modal>
-        )}
-      </div>
-    );
-  }
-}
+      <Searchbar handleSubmit={handleSubmit} />
+      {error && (
+        <h2 style={{ textAlign: 'center' }}>
+          Something went wrong: ({error})!
+        </h2>
+      )}
+      <ImageGallery togleModal={openModal} images={images} />
+      {loading && <Loader />}
+      {empty && (
+        <h2 style={{ textAlign: 'center' }}>
+          Sorry. There are no images ... 😭
+        </h2>
+      )}
+      {!loading && images.length !== total && <Button clickLoad={clickLoad} />}
+      {showModal && (
+        <Modal closeModal={closeModal}>
+          <img src={largeImageURL} alt={alt} />
+        </Modal>
+      )}
+    </div>
+  );
+};
